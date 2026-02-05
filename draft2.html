@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>A Little Book</title>
+
+<style>
+  :root{
+    --blue:#edf3fb;
+    --pink:#f6e8f0;
+    --paper:#ffffff;
+    --ink:#2f3440;
+    --muted:#7a8392;
+    --shadow:0 28px 60px rgba(0,0,0,.18);
+  }
+
+  body{
+    margin:0;
+    height:100vh;
+    display:grid;
+    place-items:center;
+    background:
+      radial-gradient(600px 300px at 20% 20%, #ffffff 0%, transparent 60%),
+      linear-gradient(135deg, var(--blue), var(--pink));
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    color:var(--ink);
+  }
+
+  .book{
+    width:min(420px, 92vw);
+    height:300px;
+    perspective:1400px;
+    position:relative;
+  }
+
+  .page{
+    position:absolute;
+    inset:0;
+    background: linear-gradient(180deg, var(--paper), #f3f6fb);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    padding:30px 28px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    text-align:center;
+    backface-visibility:hidden;
+    transform-origin:left center;
+    transition: transform .9s ease;
+  }
+
+  .page::after{
+    content:"";
+    position:absolute;
+    top:0;
+    right:0;
+    width:18px;
+    height:100%;
+    background: linear-gradient(90deg, transparent, rgba(0,0,0,.04));
+    border-top-right-radius:16px;
+    border-bottom-right-radius:16px;
+  }
+
+  .cover{
+    background: linear-gradient(135deg, #eaf1fb, #f6e6ef);
+    font-weight:500;
+  }
+
+  .cover h1{
+    margin:0;
+    font-size:26px;
+    letter-spacing:-.02em;
+  }
+
+  .cover p{
+    margin-top:10px;
+    font-size:14px;
+    color:var(--muted);
+  }
+
+  .from{
+    margin-top:18px;
+    font-size:13px;
+    color:#8a93a1;
+    font-style:italic;
+  }
+
+  .text{
+    font-size:18px;
+    line-height:1.6;
+    letter-spacing:-.01em;
+  }
+
+  .count{
+    position:absolute;
+    bottom:16px;
+    right:18px;
+    font-size:12px;
+    color:#8f98a6;
+  }
+
+  .hint{
+    position:absolute;
+    bottom:16px;
+    left:18px;
+    font-size:12px;
+    color:#8f98a6;
+  }
+
+  .page > .tap{
+    position:absolute;
+    inset:0;
+    opacity:0;
+    cursor:pointer;
+    border:none;
+    background:transparent;
+  }
+
+  .flipped{
+    transform: rotateY(-180deg);
+  }
+
+  /* Ending */
+  .endWrap{
+    height:100vh;
+    display:grid;
+    place-items:center;
+    background:
+      radial-gradient(600px 300px at 20% 20%, #ffffff 0%, transparent 60%),
+      linear-gradient(135deg, var(--blue), var(--pink));
+  }
+
+  .endCard{
+    background:white;
+    padding:40px 30px;
+    border-radius:22px;
+    box-shadow:var(--shadow);
+    text-align:center;
+    width:min(420px, 90vw);
+  }
+
+  .endCard p{
+    margin:0;
+    font-size:18px;
+    line-height:1.6;
+  }
+
+  .endCard .sign{
+    margin-top:14px;
+    font-size:14px;
+    color:var(--muted);
+    font-style:italic;
+  }
+
+  .replay{
+    margin-top:26px;
+    padding:12px 22px;
+    font-size:14px;
+    border:none;
+    border-radius:14px;
+    background:#111;
+    color:white;
+    cursor:pointer;
+    box-shadow:0 10px 22px rgba(0,0,0,.18);
+  }
+</style>
+</head>
+
+<body>
+
+<!-- soft background music -->
+<audio id="bgm" loop preload="auto">
+  <source src="soft.mp3" type="audio/mpeg">
+</audio>
+
+<div class="book" id="book"></div>
+
+<script>
+const pages = [
+  {
+    cover:true,
+    text:`<h1>For Jason</h1>
+          <p>A few pages I wanted you to have.</p>
+          <div class="from">from Camelia</div>`
+  },
+  { text:"You don’t have to explain yourself to me." },
+  { text:"I trust the way you think, even when you doubt it." },
+  { text:"I know you carry responsibility quietly. I see that." },
+  { text:"You don’t become smaller when things feel heavy. You stay you." },
+  { text:"I like how steady you are. Not perfect. Just real." },
+  { text:"You don’t owe me strength. Just honesty." },
+  { text:"Even when the world feels noisy, I feel calm with you." },
+  { text:"I believe in your judgment. Always have." },
+  { text:"Nothing about you needs to be different for me to be here." },
+  { text:"We’re on the same side. I’m not going anywhere." }
+];
+
+const book = document.getElementById("book");
+const music = document.getElementById("bgm");
+let current = 0;
+let musicStarted = false;
+
+pages.forEach((p, i) => {
+  const page = document.createElement("div");
+  page.className = "page" + (p.cover ? " cover" : "");
+  page.style.zIndex = pages.length - i;
+
+  page.innerHTML = `
+    <div class="text">${p.text}</div>
+    <div class="hint">${i === 0 ? "tap to open" : "tap to flip"}</div>
+    <div class="count">${i + 1} / ${pages.length}</div>
+    <button class="tap"></button>
+  `;
+
+  page.querySelector(".tap").addEventListener("click", () => {
+    if(!musicStarted){
+      music.volume = 0.4;
+      music.play().catch(()=>{});
+      musicStarted = true;
+    }
+    flip();
+  });
+
+  book.appendChild(page);
+});
+
+const pageEls = document.querySelectorAll(".page");
+
+function flip(){
+  if(current < pageEls.length){
+    pageEls[current].classList.add("flipped");
+    current++;
+    if(current === pageEls.length){
+      setTimeout(showEnd, 650);
+    }
+  }
+}
+
+function showEnd(){
+  document.body.innerHTML = `
+    <div class="endWrap">
+      <div class="endCard">
+        <p>I’m always here for you.</p>
+        <div class="sign">Love, Camelia</div>
+        <button class="replay" onclick="location.reload()">Read it again</button>
+      </div>
+    </div>
+  `;
+}
+</script>
+
+</body>
+</html>
